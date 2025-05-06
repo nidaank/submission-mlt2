@@ -346,7 +346,7 @@ data['combined'] = data['author'].fillna('') + ' ' + data['publisher'].fillna(''
 
 Langkah ini dilakukan dengan mengisi nilai yang hilang (jika ada) pada kedua kolom tersebut dengan string kosong ('') dan kemudian menggabungkannya dengan spasi di antara keduanya. Kolom 'combined' ini akan menjadi dasar untuk perhitungan kemiripan konten antar buku.
 
-**3. Ekstraksi Fitur dengan TF-IDF:**
+**3. Ekstraksi Fitur dengan TF-IDF**
 
 Teknik *Term Frequency-Inverse Document Frequency* (TF-IDF) digunakan untuk mengekstrak fitur-fitur penting dari teks dalam kolom 'combined'.
 
@@ -400,7 +400,7 @@ Teknik *Term Frequency-Inverse Document Frequency* (TF-IDF) digunakan untuk meng
   ```
   Sebuah *dataframe* dibuat dari matriks padat TF-IDF. Kolom-kolom *dataframe* ini diberi nama sesuai dengan fitur-fitur yang diekstrak (kata-kata dari 'author' dan 'publisher'), dan indeksnya adalah judul buku dari kolom 'title' (kemungkinan kolom 'book_title' telah diubah namanya menjadi 'title' pada tahap sebelumnya). Metode `.sample()` digunakan untuk menampilkan sebagian kecil dari *dataframe* ini, memudahkan visualisasi bobot TF-IDF untuk beberapa buku dan fitur secara acak.
 
-4. **Perhitungan *Cosine Similarity*:**
+4. **Perhitungan *Cosine Similarity***
 
 * **Menghitung *Cosine Similarity***
   ```
@@ -423,58 +423,301 @@ Teknik *Term Frequency-Inverse Document Frequency* (TF-IDF) digunakan untuk meng
   ```
   `cosine_sim_df.shape` menunjukkan dimensi dari matriks *cosine similarity*, yang akan berbentuk persegi dengan ukuran jumlah buku dikali jumlah buku. Metode `.sample()` kembali digunakan untuk menampilkan sebagian kecil dari matriks *cosine similarity*, yang menunjukkan tingkat kemiripan antara beberapa pasangan buku secara acak.
 
-**Tujuan Keseluruhan:**
+**Tujuan Keseluruhan**
 
 Tujuan dari tahapan persiapan data ini adalah untuk mengubah representasi tekstual dari penulis dan penerbit buku menjadi representasi numerik (vektor TF-IDF) dan kemudian mengukur kemiripan antar buku berdasarkan representasi numerik ini menggunakan *cosine similarity*. Matriks *cosine similarity* yang dihasilkan (`cosine_sim_df`) akan menjadi dasar untuk sistem rekomendasi *content-based*, di mana buku-buku dengan nilai kemiripan *cosine* yang tinggi dianggap memiliki konten yang serupa dan dapat direkomendasikan satu sama lain.
 
 ### Data Preparation untuk Collaborative Filtering
 
-Tentu, mari kita bahas tahapan persiapan data untuk *collaborative filtering* ini secara lebih rinci:
-
-**1. Penggunaan *Dataframe* `reduced_ratings`:**
-
+1. **Penggunaan *Dataframe* `reduced_ratings`:**
+```
+# Membaca dataset
+df = reduced_ratings
+df
+```
 Langkah awal dalam persiapan data untuk *collaborative filtering* adalah menggunakan *dataframe* yang disebut `reduced_ratings`. Ini mengindikasikan bahwa mungkin telah dilakukan proses pengurangan atau pemilihan sebagian data rating dari *dataset* awal. Tujuannya bisa untuk mengurangi kompleksitas komputasi atau fokus pada interaksi pengguna dan item yang lebih relevan.
 
-**2. Encoding User ID dan ISBN:**
+2. **Encoding User ID dan ISBN**
 
 Proses *encoding* adalah mengubah data kategorikal (dalam hal ini, ID pengguna dan ISBN buku yang kemungkinan besar berupa *string* atau angka unik) menjadi representasi numerik berupa indeks integer. Hal ini penting karena model *machine learning*, termasuk model *collaborative filtering*, umumnya bekerja lebih baik dengan input numerik.
 
 * **Membuat *List* ID Unik:** Kode `df['User-ID'].unique().tolist()` dan `df['ISBN'].unique().tolist()` menghasilkan *list* yang berisi nilai-nilai unik dari kolom 'User-ID' dan 'ISBN'. Ini memastikan bahwa setiap pengguna dan setiap buku hanya direpresentasikan satu kali dalam *list*.
 
 * **Membuat *Dictionary* Pemetaan (Encoding):** Dua *dictionary* dibuat untuk setiap ID pengguna dan ISBN buku:
-    * `user_to_user_encoded` dan `book_to_book_encoded`: *Dictionary* ini memetakan setiap nilai unik (ID pengguna atau ISBN) ke sebuah indeks integer yang berurutan. Misalnya, pengguna dengan ID '22' mungkin dipetakan ke indeks 0, pengguna dengan ID '53' ke indeks 1, dan seterusnya.
-    * `user_encoded_to_user` dan `book_encoded_to_book`: Ini adalah *dictionary* kebalikan dari yang sebelumnya, memetakan indeks integer kembali ke nilai asli (ID pengguna atau ISBN). Ini berguna untuk interpretasi hasil model.
+    * `user_to_user_encoded` dan `book_to_book_encoded`
+        ```
+        # Melakukan encoding userID
+        user_to_user_encoded = {x: i for i, x in enumerate(user_ids)}
+        print('encoded userID : ', user_to_user_encoded)
+    
+        # Melakukan proses encoding ISBN
+        book_to_book_encoded = {x: i for i, x in enumerate(book_isbn)}
+        ```
+      *Dictionary* ini memetakan setiap nilai unik (ID pengguna atau ISBN) ke sebuah indeks integer yang berurutan. Misalnya, pengguna dengan ID '22' mungkin dipetakan ke indeks 0, pengguna dengan ID '53' ke indeks 1, dan seterusnya.
+    * `user_encoded_to_user` dan `book_encoded_to_book`
+        ```
+        # Melakukan proses encoding angka ke ke userID
+        user_encoded_to_user = {i: x for i, x in enumerate(user_ids)}
+        print('encoded angka ke userID: ', user_encoded_to_user)
+    
+        # Melakukan proses encoding angka ke ISBN
+        book_encoded_to_book = {i: x for i, x in enumerate(book_isbn)}
+        ```
+      Ini adalah *dictionary* kebalikan dari yang sebelumnya, memetakan indeks integer kembali ke nilai asli (ID pengguna atau ISBN). Ini berguna untuk interpretasi hasil model.
 
-* **Menerapkan Pemetaan ke *Dataframe*:** Metode `.map()` digunakan untuk menerapkan *dictionary* *encoding* ke kolom 'User-ID' dan 'ISBN' dalam *dataframe* `df`. Ini akan membuat dua kolom baru, 'user' dan 'book', yang berisi indeks integer yang sesuai untuk setiap interaksi (rating).
+* **Menerapkan Pemetaan ke *Dataframe***
+  ```
+  # Mapping User-ID ke dataframe user
+  df['user'] = df['User-ID'].map(user_to_user_encoded)
+    
+  # Mapping ISBN ke dataframe book
+  df['book'] = df['ISBN'].map(book_to_book_encoded)
+  ```
+  Metode `.map()` digunakan untuk menerapkan *dictionary* *encoding* ke kolom 'User-ID' dan 'ISBN' dalam *dataframe* `df`. Ini akan membuat dua kolom baru, 'user' dan 'book', yang berisi indeks integer yang sesuai untuk setiap interaksi (rating).
 
 **3. Mendapatkan Jumlah Pengguna dan Buku:**
+```
+# Mendapatkan jumlah user
+num_users = len(user_to_user_encoded)
+print(num_users)
 
+# Mendapatkan jumlah buku
+num_book = len(book_to_book_encoded)
+print(num_book)
+```
 Setelah proses *encoding*, jumlah pengguna unik (`num_users`) dan jumlah buku unik (`num_book`) dihitung menggunakan panjang dari *dictionary* *encoding*. Informasi ini penting untuk menentukan dimensi dari *embedding layer* dalam model *neural network* untuk *collaborative filtering*.
 
 **4. Konversi Tipe Data Rating:**
-
+```
+# Mengubah rating menjadi nilai float
+df['Book-Rating'] = df['Book-Rating'].values.astype(np.float32)
+```
 Kolom 'Book-Rating' diubah menjadi tipe data *float32*. Ini umum dilakukan untuk nilai *rating* karena model *machine learning* seringkali bekerja dengan bilangan *floating-point*.
 
 **5. Identifikasi Rentang Rating:**
+```
+# Nilai minimum rating
+min_rating = min(df['Book-Rating'])
 
+# Nilai maksimal rating
+max_rating = max(df['Book-Rating'])
+```
 Nilai minimum (`min_rating`) dan maksimum (`max_rating`) dari kolom 'Book-Rating' diidentifikasi. Informasi ini akan digunakan untuk normalisasi nilai *rating* ke dalam rentang yang lebih kecil (biasanya 0 hingga 1).
 
 **6. Pengacakan Dataset:**
-
+```
+# Mengacak dataset
+df = df.sample(frac=1, random_state=42)
+df
+```
 *Dataframe* `df` diacak menggunakan `df.sample(frac=1, random_state=42)`. `frac=1` berarti semua baris akan dikembalikan, tetapi dalam urutan acak. `random_state=42` digunakan untuk memastikan bahwa pengacakan akan menghasilkan urutan yang sama setiap kali kode dijalankan, yang penting untuk *reproducibility*.
 
 **7. Pemisahan Fitur dan Label:**
+```
+# Membuat variabel x untuk mencocokkan data user dan book menjadi satu value
+x = df[['user', 'book']].values
 
+# Membuat variabel y untuk membuat rating dari hasil
+y = df['Book-Rating'].apply(lambda x: (x - min_rating) / (max_rating - min_rating)).values
+```
 * **Fitur (`x`):** Kolom 'user' dan 'book' (yang berisi indeks *encoding*) dipilih sebagai fitur (`x`). Pasangan indeks pengguna dan buku ini akan menjadi input untuk model *collaborative filtering*. Metode `.values` digunakan untuk mengubah *dataframe* menjadi *array numpy*.
 * **Label (`y`):** Kolom 'Book-Rating' digunakan sebagai label (`y`). Nilai *rating* dinormalisasi ke dalam rentang 0 hingga 1 menggunakan formula: `(x - min_rating) / (max_rating - min_rating)`. Normalisasi ini membantu model untuk belajar dengan lebih stabil dan efisien.
 
 **8. Pembagian Data Latih dan Validasi:**
-
+```
+# Membagi menjadi 80% data train dan 20% data validasi
+train_indices = int(0.8 * df.shape[0])
+x_train, x_val, y_train, y_val = (
+    x[:train_indices],
+    x[train_indices:],
+    y[:train_indices],
+    y[train_indices:]
+)
+```
 Dataset dibagi menjadi set pelatihan (80%) dan validasi (20%). `train_indices` dihitung untuk menentukan titik pemisahan. Kemudian, fitur (`x`) dan label (`y`) dibagi menjadi `x_train`, `x_val`, `y_train`, dan `y_val`. Set pelatihan akan digunakan untuk melatih model, sedangkan set validasi akan digunakan untuk mengevaluasi kinerja model selama pelatihan dan membantu dalam *tuning hyperparameter*.
+
+**Tujuan Keseluruhan**
 
 Secara keseluruhan, tahapan ini mempersiapkan data *rating* pengguna dan buku ke dalam format numerik yang sesuai untuk melatih model *collaborative filtering*. Proses *encoding* mengubah identitas pengguna dan buku menjadi indeks, normalisasi skala *rating*, dan pembagian data memastikan bahwa model dapat dipelajari dan dievaluasi dengan baik.
 
 ## Modeling
+
+Pada tahap ini, dua pendekatan algoritma yang berbeda diimplementasikan untuk membangun sistem rekomendasi buku: *Content-Based Filtering* (CBF) dan *Collaborative Filtering* (CF). Setiap pendekatan memiliki cara kerja, kelebihan, dan kekurangan yang berbeda dalam menghasilkan rekomendasi.
+
+### 1. *Content-Based Filtering*
+
+Pendekatan *Content-Based Filtering* merekomendasikan buku kepada pengguna berdasarkan kemiripan atribut konten antar buku. Dalam implementasi ini, fitur 'author' dan 'publisher' dari buku digunakan sebagai dasar untuk mengukur kemiripan.
+
+**Cara Kerja:**
+
+1.  **Representasi Fitur:** Fitur teks dari kolom 'combined' (gabungan 'author' dan 'publisher') diubah menjadi vektor numerik menggunakan algoritma *Term Frequency-Inverse Document Frequency* (TF-IDF). TF-IDF memberikan bobot pada setiap kata berdasarkan frekuensinya dalam satu buku dan invers frekuensi dokumennya di seluruh koleksi buku.
+2.  **Perhitungan Kemiripan:** Kemiripan antar vektor TF-IDF dari setiap buku dihitung menggunakan *cosine similarity*. Nilai *cosine similarity* mengukur sudut antara dua vektor, dengan nilai yang lebih tinggi menunjukkan kemiripan yang lebih besar. Matriks *cosine similarity* (`cosine_sim_df`) menyimpan skor kemiripan antara setiap pasangan buku.
+3.  **Penyusunan Rekomendasi:** Untuk memberikan rekomendasi untuk sebuah buku yang dipilih, sistem mencari buku-buku lain dengan skor *cosine similarity* tertinggi terhadap buku tersebut. Buku dengan kemiripan tertinggi dianggap paling relevan.
+
+**Implementasi Fungsi `book_recommendations`:**
+```
+def book_recommendations(title, similarity_data=cosine_sim_df, items=data[['title', 'author', 'publisher']], k=5):
+  index = similarity_data.loc[:,title].to_numpy().argpartition(
+        range(-1, -k, -1))
+
+  # Mengambil data dengan similarity terbesar dari index yang ada
+  closest = similarity_data.columns[index[-1:-(k+2):-1]]
+
+  # Drop title agar nama buku yang dicari tidak muncul dalam daftar rekomendasi
+  closest = closest.drop(title, errors='ignore')
+
+  return pd.DataFrame(closest).merge(items).head(k)
+```
+Fungsi `book_recommendations` menerima judul buku (`title`), matriks kemiripan (`similarity_data`), *dataframe* informasi buku (`items`), dan jumlah rekomendasi yang diinginkan (`k`) sebagai input. Fungsi ini bekerja dengan:
+
+1.  Mencari indeks buku yang sesuai dengan judul yang diberikan dalam matriks kemiripan.
+2.  Menggunakan `argpartition` untuk mendapatkan indeks dari *k* buku yang paling mirip (berdasarkan skor *cosine similarity* tertinggi).
+3.  Mengambil nama-nama buku yang paling mirip dari kolom matriks kemiripan berdasarkan indeks yang ditemukan.
+4.  Menghapus judul buku yang menjadi input dari daftar rekomendasi agar tidak muncul sebagai rekomendasi.
+5.  Menggabungkan daftar judul buku rekomendasi dengan *dataframe* informasi buku untuk menampilkan detail penulis dan penerbit.
+6.  Mengembalikan *dataframe* berisi *k* buku rekomendasi teratas.
+
+**Contoh Hasil Rekomendasi CBF:**
+
+Untuk buku "Harry Potter and the Prisoner of Azkaban (Book 3)", sistem merekomendasikan 5 buku teratas berdasarkan kemiripan penulis dan penerbit:
+
+```
+                                                title         author              publisher
+0  Harry Potter and the Chamber of Secrets (Harry...       J. K. Rowling       Arthur A. Levine Books
+1    Harry Potter and the Philosopher's Stone (Cove...     J.K. Rowling         BBC Consumer Publishing
+2  Exploring Space: From Ancient Legends to the T...      Scholastic Books       Scholastic
+3                   Harry Potter und der Stein der Weisen Joanne K. Rowling      Carlsen Verlag GmbH
+4  Harry Potter und der Gefangene von Askaban. So...      Joanne K. Rowling       Dhv der HÃ¶rverlag
+```
+
+**Kelebihan CBF:**
+
+* **Tidak Membutuhkan Data Pengguna:** Rekomendasi didasarkan sepenuhnya pada atribut item, sehingga tidak memerlukan riwayat interaksi pengguna.
+* **Transparansi:** Alasan di balik rekomendasi relatif mudah dipahami (berdasarkan kemiripan fitur).
+* **Mampu Merekomendasikan Item Baru:** Dapat merekomendasikan buku baru yang memiliki fitur serupa dengan buku yang disukai pengguna di masa lalu.
+
+**Kekurangan CBF:**
+
+* **Keterbatasan Fitur:** Kualitas rekomendasi sangat bergantung pada kualitas dan kelengkapan fitur item.
+* **Over-Specialization:** Cenderung merekomendasikan item yang sangat mirip dengan preferensi masa lalu pengguna, sehingga kurang dalam penemuan (*discovery*) item baru yang mungkin menarik.
+* **Tidak Mempertimbangkan Preferensi Pengguna Lain:** Tidak memanfaatkan informasi dari pengguna lain yang memiliki selera serupa.
+
+### 2. *Collaborative Filtering*
+
+Pendekatan *Collaborative Filtering* merekomendasikan buku kepada pengguna berdasarkan pola interaksi (rating) pengguna lain yang memiliki preferensi serupa. Dalam implementasi ini, digunakan model *neural network* dengan arsitektur `RecommenderNet`.
+
+**Cara Kerja:**
+
+1.  **Pembuatan Matriks Interaksi:** Data rating pengguna dan buku diubah menjadi matriks interaksi pengguna-buku, di mana baris mewakili pengguna, kolom mewakili buku, dan nilai sel menunjukkan rating yang diberikan pengguna untuk buku tersebut (jika ada).
+2.  **Pembelajaran Representasi Laten (Embedding):** Model `RecommenderNet` menggunakan *embedding layer* untuk mempelajari representasi laten (vektor berdimensi rendah) untuk setiap pengguna dan setiap buku. *Embedding* ini menangkap fitur-fitur tersembunyi yang mendasari preferensi pengguna dan karakteristik buku berdasarkan pola interaksi.
+3.  **Prediksi Rating:** Model memprediksi rating yang mungkin diberikan seorang pengguna untuk buku yang belum pernah ia interaksikan, berdasarkan *embedding* pengguna dan buku.
+4.  **Penyusunan Rekomendasi:** Buku-buku dengan prediksi rating tertinggi yang belum pernah dibaca oleh pengguna direkomendasikan.
+
+**Implementasi Model `RecommenderNet`:**
+```
+class RecommenderNet(tf.keras.Model):
+
+  # Insialisasi fungsi
+  def __init__(self, num_users, num_book, embedding_size, **kwargs):
+    super(RecommenderNet, self).__init__(**kwargs)
+    self.num_users = num_users
+    self.num_book = num_book
+    self.embedding_size = embedding_size
+    self.user_embedding = layers.Embedding( # layer embedding user
+        num_users,
+        embedding_size,
+        embeddings_initializer = 'he_normal',
+        embeddings_regularizer = keras.regularizers.l2(1e-6)
+    )
+    self.user_bias = layers.Embedding(num_users, 1) # layer embedding user bias
+    self.book_embedding = layers.Embedding( # layer embeddings book
+        num_book,
+        embedding_size,
+        embeddings_initializer = 'he_normal',
+        embeddings_regularizer = keras.regularizers.l2(1e-6)
+    )
+    self.book_bias = layers.Embedding(num_book, 1) # layer embedding book bias
+
+  def call(self, inputs):
+    user_vector = self.user_embedding(inputs[:,0]) # memanggil layer embedding 1
+    user_bias = self.user_bias(inputs[:, 0]) # memanggil layer embedding 2
+    book_vector = self.book_embedding(inputs[:, 1]) # memanggil layer embedding 3
+    book_bias = self.book_bias(inputs[:, 1]) # memanggil layer embedding 4
+
+    dot_user_book = tf.tensordot(user_vector, book_vector, 2)
+
+    x = dot_user_book + user_bias + book_bias
+
+    return tf.nn.sigmoid(x) # activation sigmoid
+```
+Model `RecommenderNet` adalah kelas *Keras Model* yang terdiri dari:
+
+* **User Embedding Layer:** Memetakan setiap indeks pengguna ke vektor *embedding* berdimensi `embedding_size`.
+* **User Bias Layer:** Mempelajari bias spesifik untuk setiap pengguna.
+* **Book Embedding Layer:** Memetakan setiap indeks buku ke vektor *embedding* berdimensi `embedding_size`.
+* **Book Bias Layer:** Mempelajari bias spesifik untuk setiap buku.
+
+Fungsi `call` dalam model melakukan operasi *dot product* antara vektor *embedding* pengguna dan buku, kemudian menambahkan bias pengguna dan buku. Hasilnya diaktifkan menggunakan fungsi sigmoid untuk menghasilkan prediksi rating dalam skala 0 hingga 1 (karena rating telah dinormalisasi).
+
+Model dikompilasi menggunakan fungsi *loss* `BinaryCrossentropy` (meskipun ini adalah masalah regresi rating, *binary cross-entropy* sering digunakan dalam *implicit feedback* atau setelah mengubah rating menjadi sinyal biner), *optimizer* Adam, dan metrik evaluasi *Root Mean Squared Error* (RMSE). Model dilatih menggunakan data pelatihan (`x_train`, `y_train`) dan dievaluasi pada data validasi (`x_val`, `y_val`).
+
+**Contoh Hasil Rekomendasi CF:**
+
+Untuk seorang pengguna dengan ID 11676, sistem merekomendasikan 10 buku teratas yang belum pernah dibaca oleh pengguna tersebut, berdasarkan prediksi rating model:
+
+```
+Showing recommendations for users: 11676
+===========================
+Book with high ratings from user
+--------------------------------
+Shadowrun. Deutschland in den Schatten. : Hans Joachim Alpers - Heyne
+The Professor and the Madman: A Tale of Murder, Insanity, and the Making of The Oxford English Dictionary : Simon Winchester - Perennial
+Wolfwalker : Tara K. Harper - Del Rey Books
+When Strangers Marry : Lisa Kleypas - Avon Books
+Think on These Things : J. Krishnamurti - HarperCollins Publishers
+Our Town: A Play in Three Acts : Thornton Niven Wilder - Harpercollins
+Opposites (First Concepts) : Melanie Whittington - Priddy Books
+Hawk O'Toole's Hostage : Sandra Brown - Bantam
+Manuel Alvarez Bravo (Phaidon 55's) : Amanda Hopkinson - Phaidon Press
+Exploring Natural Disasters (Eyes on Adventure Series) : Stella Sands - Kidsbooks Inc
+--------------------------------
+Top 10 books recommendation
+--------------------------------
+The Baby Book: Everything You Need to Know About Your Baby from Birth to Age Two : Martha Sears - Little, Brown
+Warchild : Karin Lowachee - Aspect
+The scarlet letter (The World's best reading) : Nathaniel Hawthorne - Reader's Digest Association
+Life Is So Good : George Dawson - Penguin Books
+This Little Light of Mine: The Life of Fannie Lou Hamer : Kay Mills - Plume Books
+The Chronicles of Pern: First Fall (The Dragonriders of Pern) : Anne McCaffrey - Ballantine Books
+Le Combat ordinaire, tome 1 : Larcenet - Dargaud
+Blitzeis. : Peter Stamm - btb
+Keeping Watch : LAURIE R. KING - Bantam
+The School Story : Andrew Clements - Aladdin
+```
+
+**Kelebihan CF:**
+
+* **Rekomendasi Personal:** Dapat memberikan rekomendasi yang sangat personal karena didasarkan pada preferensi pengguna lain yang serupa.
+* **Penemuan Item Baru:** Mampu merekomendasikan item yang mungkin tidak terkait secara konten tetapi disukai oleh pengguna dengan selera yang sama.
+* **Tidak Membutuhkan Fitur Item Eksplisit:** Bekerja dengan baik bahkan jika informasi fitur item terbatas.
+
+**Kekurangan CF:**
+
+* **Masalah *Cold Start*:** Sulit memberikan rekomendasi untuk pengguna baru tanpa riwayat interaksi atau item baru tanpa interaksi apa pun.
+* **Sparsitas Data:** Kinerja dapat menurun jika matriks interaksi pengguna-item sangat jarang (banyak pengguna belum berinteraksi dengan banyak item).
+* **Skalabilitas:** Dengan jumlah pengguna dan item yang besar, komputasi dapat menjadi mahal.
+
+Dalam implementasi ini, kedua pendekatan memberikan jenis rekomendasi yang berbeda. CBF merekomendasikan buku yang mirip dalam hal penulis dan penerbit, sementara CF merekomendasikan buku berdasarkan pola rating pengguna lain yang memiliki preferensi serupa. Kombinasi kedua pendekatan (*hybrid recommendation system*) seringkali dapat memberikan hasil rekomendasi yang lebih baik dengan memanfaatkan kelebihan masing-masing metode dan mengatasi beberapa kekurangannya.
+
+### **Perbandingan Singkat**
+
+| Aspek                | Content-Based Filtering             | Collaborative Filtering          |
+| -------------------- | ----------------------------------- | -------------------------------- |
+| Berdasarkan          | Fitur item                          | Interaksi pengguna-item          |
+| Cold-start problem   | Tidak untuk pengguna, ya untuk item | Ya, jika tidak ada data pengguna |
+| Eksplorasi item baru | Terbatas (mirip saja)               | Bisa beragam                     |
+| Data yang dibutuhkan | Metadata buku                       | Riwayat interaksi pengguna       |
+
 Tahapan ini membahas mengenai model sisten rekomendasi yang Anda buat untuk menyelesaikan permasalahan. Sajikan top-N recommendation sebagai output.
 
 **Rubrik/Kriteria Tambahan (Opsional)**: 
@@ -482,16 +725,84 @@ Tahapan ini membahas mengenai model sisten rekomendasi yang Anda buat untuk meny
 - Menjelaskan kelebihan dan kekurangan dari solusi/pendekatan yang dipilih.
 
 ## Evaluation
-Pada bagian ini Anda perlu menyebutkan metrik evaluasi yang digunakan. Kemudian, jelaskan hasil proyek berdasarkan metrik evaluasi tersebut.
 
-Ingatlah, metrik evaluasi yang digunakan harus sesuai dengan konteks data, problem statement, dan solusi yang diinginkan.
+## Evaluasi Sistem Rekomendasi
 
-**Rubrik/Kriteria Tambahan (Opsional)**: 
-- Menjelaskan formula metrik dan bagaimana metrik tersebut bekerja.
+Bagian ini akan membahas metrik evaluasi yang digunakan untuk mengukur kinerja kedua pendekatan sistem rekomendasi, *Content-Based Filtering* (CBF) dan *Collaborative Filtering* (CF), serta menganalisis hasil proyek berdasarkan metrik tersebut.
 
-**---Ini adalah bagian akhir laporan---**
+### 1. Evaluasi *Content-Based Filtering*
+
+Untuk mengevaluasi kinerja sistem rekomendasi berbasis konten, digunakan metrik **Precision**, **Recall**, dan **F1-Score**. Metrik ini umum digunakan dalam tugas klasifikasi dan relevan untuk mengevaluasi apakah buku-buku yang direkomendasikan memang mirip dengan buku yang menjadi dasar rekomendasi.
+
+* **Precision:** Mengukur proporsi buku yang relevan di antara semua buku yang direkomendasikan. Cara kerja Precision adalah dengan menghitung dari semua buku yang direkomendasikan oleh sistem, berapa proporsi di antaranya yang sebenarnya relevan dengan preferensi pengguna (berdasarkan ground truth kemiripan yang ditetapkan). Jika Precision tinggi, berarti sistem sangat akurat dalam merekomendasikan buku yang benar-benar mirip. Secara matematis, Precision didefinisikan sebagai:
+
+  $$\text{Precision} = \frac{\text{Jumlah Buku Relevan yang Direkomendasikan}}{\text{Total Jumlah Buku yang Direkomendasikan}}$$
+
+  Precision yang tinggi menunjukkan bahwa ketika sistem merekomendasikan sebuah buku, kemungkinan besar buku tersebut memang relevan.
+
+* **Recall:** Mengukur proporsi buku relevan yang berhasil direkomendasikan oleh sistem dari semua buku yang sebenarnya relevan. Cara kerja Recall adalah dengan menghitung dari semua buku yang sebenarnya relevan dengan preferensi pengguna (berdasarkan ground truth kemiripan), berapa proporsi di antaranya yang berhasil direkomendasikan oleh sistem. Jika Recall tinggi, berarti sistem mampu menemukan sebagian besar buku yang relevan. Secara matematis, Recall didefinisikan sebagai:
+
+  $$\text{Recall} = \frac{\text{Jumlah Buku Relevan yang Direkomendasikan}}{\text{Total Jumlah Buku yang Sebenarnya Relevan}}$$
+
+  Recall yang tinggi menunjukkan bahwa sistem mampu mengidentifikasi sebagian besar buku yang relevan.
+
+* **F1-Score:** Merupakan rata-rata harmonik antara Precision dan Recall. Metrik ini memberikan gambaran yang seimbang mengenai performa model, terutama ketika terdapat ketidakseimbangan antara Precision dan Recall. Cara kerja F1-Score adalah dengan mengambil rata-rata harmonik antara Precision dan Recall. Ini memberikan ukuran tunggal yang menyeimbangkan kemampuan sistem untuk menjadi akurat (Precision) dan lengkap (Recall). F1-Score sangat berguna ketika kita ingin menghindari sistem yang hanya fokus pada salah satu aspek (misalnya, merekomendasikan sangat sedikit buku tetapi semuanya relevan, atau merekomendasikan banyak buku tetapi hanya sedikit yang relevan). Secara matematis, F1-Score didefinisikan sebagai:
+
+  $$\text{F1-Score} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
+
+Dalam implementasi, kemiripan *cosine* antara buku digunakan sebagai dasar untuk menentukan relevansi. Sebuah *threshold* kemiripan ditetapkan (dalam kasus ini 0.6). Jika kemiripan antara dua buku melebihi *threshold*, buku tersebut dianggap relevan. *Ground truth* dibuat berdasarkan *threshold* ini, dan prediksi biner dibuat berdasarkan apakah skor kemiripan melebihi *threshold*.
+
+**Hasil Evaluasi CBF:**
+
+```
+Precision: 1.0000
+Recall:    1.0000
+F1-score:  1.0000
+```
+
+Hasil evaluasi menunjukkan bahwa dengan *threshold* 0.6, model *Content-Based Filtering* mencapai skor Precision, Recall, dan F1-Score sempurna (1.0). Ini mengindikasikan bahwa semua buku yang dianggap mirip oleh model (di atas *threshold*) memang dianggap relevan berdasarkan *ground truth* yang dibuat, dan model berhasil mengidentifikasi semua pasangan buku yang relevan dalam sampel yang diuji. Namun, perlu diingat bahwa evaluasi ini dilakukan pada sampel data dan sangat bergantung pada *threshold* yang dipilih. Skor sempurna ini mungkin tidak berlaku untuk seluruh dataset atau dengan *threshold* yang berbeda.
+
+### 2. Evaluasi *Collaborative Filtering*
+
+Untuk mengevaluasi kinerja model *Collaborative Filtering*, digunakan metrik **Root Mean Squared Error (RMSE)**. RMSE adalah metrik umum untuk mengevaluasi model regresi, dan dalam konteks sistem rekomendasi, RMSE mengukur perbedaan antara rating yang diprediksi oleh model dan rating sebenarnya yang diberikan oleh pengguna. Semakin kecil nilai RMSE, semakin akurat prediksi rating model.
+
+* **Root Mean Squared Error (RMSE):** Dihitung sebagai akar kuadrat dari rata-rata kuadrat perbedaan antara nilai prediksi ($\hat{y}_i$) dan nilai sebenarnya ($y_i$). Secara matematis, RMSE didefinisikan sebagai:
+
+  ![image](https://github.com/user-attachments/assets/810738e2-dedd-435c-ae4a-092065632190)
+  
+    di mana $n$ adalah jumlah total prediksi.
+  Cara kerja RMSE adalah dengan mengukur rata-rata besarnya kesalahan prediksi rating yang dilakukan oleh model. Untuk setiap interaksi pengguna-buku dalam data validasi, model memprediksi rating. RMSE kemudian menghitung selisih antara rating prediksi dan rating sebenarnya, mengkuadratkan selisih ini (untuk menghilangkan nilai negatif dan memberikan bobot lebih besar pada kesalahan yang lebih besar), mencari rata-rata dari semua selisih kuadrat, dan akhirnya mengambil akar kuadrat dari rata-rata tersebut. Hasilnya adalah ukuran kesalahan rata-rata dalam skala rating asli (atau skala normalisasi dalam kasus ini). RMSE yang rendah menunjukkan bahwa model secara keseluruhan membuat prediksi rating yang dekat dengan rating sebenarnya.
+
+**Hasil Evaluasi CF:**
+
+Berdasarkan grafik metrik model yang ditampilkan, terlihat bahwa nilai RMSE pada data pelatihan terus menurun seiring dengan bertambahnya *epoch*. Nilai RMSE pada data validasi juga menurun pada awalnya, namun kemudian cenderung stabil atau bahkan sedikit meningkat setelah *epoch* tertentu.
+
+Nilai RMSE terakhir pada *epoch* ke-20 adalah:
+
+* **RMSE Training:** Sekitar 0.2728
+* **RMSE Validasi:** Sekitar 0.3605
+
+Berikut visualisasi model metrik.
+![image](https://github.com/user-attachments/assets/ec5ab25f-afd9-4cfe-a126-5f7ad088f822)
+
+
+Perbedaan antara RMSE pelatihan dan validasi menunjukkan adanya sedikit *overfitting*, di mana model belajar terlalu baik pada data pelatihan sehingga kinerjanya sedikit menurun pada data yang belum pernah dilihat (data validasi). Namun, nilai RMSE validasi sebesar 0.3605 menunjukkan bahwa model masih memiliki kemampuan yang cukup baik dalam memprediksi rating buku oleh pengguna. Semakin rendah nilai RMSE, semakin akurat prediksi rating model. Dalam konteks rating yang dinormalisasi antara 0 dan 1, RMSE sebesar 0.3605 menunjukkan bahwa rata-rata kesalahan prediksi rating adalah sekitar 0.36 pada skala yang dinormalisasi.
+
+### Evaluasi Tujuan Proyek Berdasarkan Problem Statements
+
+Berdasarkan hasil evaluasi:
+
+* **Bagaimana cara membantu pengguna menemukan buku yang sesuai dengan preferensi mereka?** Kedua model berkontribusi. CBF merekomendasikan berdasarkan kemiripan konten (penulis, penerbit), membantu pengguna menemukan buku serupa dengan yang mereka sukai. CF merekomendasikan berdasarkan pola rating pengguna lain, memperluas penemuan berdasarkan preferensi kolektif.
+
+* **Bagaimana cara membangun sistem rekomendasi yang lebih personal dan relevan?** CF secara khusus bertujuan untuk ini dengan mempelajari *embedding* pengguna dan buku dari data interaksi, menghasilkan rekomendasi yang dipersonalisasi. CBF juga memberikan rekomendasi yang relevan berdasarkan konten buku yang diminati pengguna.
+
+* **Bagaimana cara mengatasi *cold-start problem*?** CBF memiliki keunggulan dalam mengatasi *cold-start* untuk buku baru karena rekomendasinya hanya bergantung pada atribut konten. CF lebih rentan terhadap *cold-start* karena memerlukan data interaksi pengguna dan buku.
+
+Secara keseluruhan, kedua pendekatan berhasil diimplementasikan dan dievaluasi. Content-Based Filtering efektif dalam merekomendasikan buku yang kontennya mirip, sementara Collaborative Filtering mampu memberikan rekomendasi yang dipersonalisasi berdasarkan pola interaksi pengguna. Pemilihan pendekatan yang paling sesuai atau kombinasi keduanya dapat bergantung pada kebutuhan spesifik dan karakteristik dataset yang lebih luas.
+
+**------**
 
 _Catatan:_
-- _Anda dapat menambahkan gambar, kode, atau tabel ke dalam laporan jika diperlukan. Temukan caranya pada contoh dokumen markdown di situs editor [Dillinger](https://dillinger.io/), [Github Guides: Mastering markdown](https://guides.github.com/features/mastering-markdown/), atau sumber lain di internet. Semangat!_
-- Jika terdapat penjelasan yang harus menyertakan code snippet, tuliskan dengan sewajarnya. Tidak perlu menuliskan keseluruhan kode project, cukup bagian yang ingin dijelaskan saja.
-- E. Ahmed and A. Letta, “Book Recommendation Using Collaborative Filtering Algorithm,” *Applied Computational Intelligence and Soft Computing*, vol. 2023, Article ID 1514801, 2023. \[Online]. Available: [https://onlinelibrary.wiley.com/doi/10.1155/2023/1514801](https://onlinelibrary.wiley.com/doi/10.1155/2023/1514801)
+- Ahmed, E., & Letta, A. (2023). Book Recommendation Using Collaborative Filtering Algorithm. Applied Computational Intelligence and Soft Computing, 2023, Article ID 1514801. https://onlinelibrary.wiley.com/doi/10.1155/2023/1514801
+- Kaggle. (n.d.). Book Recommendation Dataset. https://www.kaggle.com/datasets/arashnic/book-recommendation-dataset
+- Dicoding. (n.d.). Machine Learning Terapan. https://www.dicoding.com/academies/319-machine-learning-terapan
