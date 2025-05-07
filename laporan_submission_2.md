@@ -271,7 +271,7 @@ Boxplot ini menyajikan distribusi usia pengguna. Terlihat bahwa sebagian besar d
 
 Pada tahap ini, dilakukan berbagai langkah pembersihan dan transformasi data untuk memastikan data yang digunakan bersih, relevan, dan siap untuk proses analisis lebih lanjut maupun pembangunan model sistem rekomendasi. Tahapan yang dilakukan adalah sebagai berikut:
 
-#### Melihat Ukuran Awal Dataset Buku
+### Melihat Ukuran Awal Dataset Buku
 ```
 print('Banyak buku: ', len(books['ISBN'].unique()))
 ```
@@ -288,27 +288,27 @@ reduced_ratings
 ```
 Untuk mempermudah dan mempercepat proses analisis serta pembangunan model rekomendasi, dilakukan reduksi ukuran dataset `books` dan `ratings`. Untuk mengurangi ukuran dataset `books`, diambil sampel sebanyak 15.000 baris data secara acak menggunakan fungsi `books.sample(n=15000, random_state=5)`. Parameter `random_state=5` digunakan untuk memastikan hasil pengambilan sampel dapat direproduksi.
 
-#### Pengambilan Sampel Data Buku
+### Pengambilan Sampel Data Buku
 ```
 unique_isbn_list = reduced_books['ISBN'].unique().tolist()
 len(unique_isbn_list)
 ```
 *Dataframe* hasil pengambilan sampel ini disimpan dalam variabel `reduced_books`. Jumlah ISBN unik dalam sampel ini kemudian diperiksa menggunakan kode `unique_isbn_list = reduced_books['ISBN'].unique().tolist()` dan `len(unique_isbn_list)`.
 
-#### Pemfilteran Data Rating
+### Pemfilteran Data Rating
 ```
 reduced_ratings = ratings[ratings['ISBN'].isin(unique_isbn_list)]
 reduced_ratings
 ```
 *Dataframe* `ratings` difilter untuk hanya menyertakan rating buku-buku yang ISBN-nya terdapat dalam daftar ISBN unik dari `reduced_books`. Hal ini dilakukan menggunakan kode `reduced_ratings = ratings[ratings['ISBN'].isin(unique_isbn_list)]`. Dengan demikian, *dataframe* `reduced_ratings` hanya berisi rating untuk buku-buku yang juga terdapat dalam sampel `reduced_books`.
 
-#### Penghapusan Kolom URL Gambar
+### Penghapusan Kolom URL Gambar
 ```
 reduced_books = reduced_books.drop(columns=['Image-URL-S', 'Image-URL-M', 'Image-URL-L'])
 ```
 Tiga kolom yang berisi informasi URL gambar buku, yaitu 'Image-URL-S', 'Image-URL-M', dan 'Image-URL-L', dihapus dari *dataframe* `reduced_books` menggunakan kode `reduced_books = reduced_books.drop(columns=['Image-URL-S', 'Image-URL-M', 'Image-URL-L'])`. Kolom-kolom ini dianggap tidak relevan untuk analisis rekomendasi berbasis teks atau rating.
 
-#### Penggabungan Data Rating dan Buku
+### Penggabungan Data Rating dan Buku
 ```
 # Menggabungkan dataframe rating dengan book berdasarkan nilai ISBN
 booksrate = pd.merge(reduced_ratings, reduced_books, on='ISBN', how='left')
@@ -316,7 +316,7 @@ booksrate
 ```
 *Dataframe* `reduced_ratings` dan `reduced_books` digabungkan berdasarkan kolom 'ISBN' menggunakan fungsi `pd.merge(reduced_ratings, reduced_books, on='ISBN', how='left')`. Penggunaan `how='left'` memastikan bahwa semua rating dari `reduced_ratings` tetap ada, dan informasi buku yang sesuai dari `reduced_books` ditambahkan. Hasil penggabungan disimpan dalam *dataframe* `booksrate`.
 
-#### Penghitungan Jumlah Rating per Buku
+### Penghitungan Jumlah Rating per Buku
 ```
 # Menghitung jumlah rating kemudian menggabungkannya berdasarkan ISBN
 booksrate.groupby('ISBN').sum()
