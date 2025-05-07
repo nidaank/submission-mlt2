@@ -573,7 +573,7 @@ Secara keseluruhan, tahapan ini mempersiapkan data *rating* pengguna dan buku ke
 
 Pada tahap ini, dua pendekatan algoritma yang berbeda diimplementasikan untuk membangun sistem rekomendasi buku: *Content-Based Filtering* (CBF) dan *Collaborative Filtering* (CF). Setiap pendekatan memiliki cara kerja, kelebihan, dan kekurangan yang berbeda dalam menghasilkan rekomendasi.
 
-### 1. *Content-Based Filtering*
+### Content-Based Filtering
 
 Pendekatan *Content-Based Filtering* merekomendasikan buku kepada pengguna berdasarkan kemiripan atribut konten antar buku. Dalam implementasi ini, fitur 'author' dan 'publisher' dari buku digunakan sebagai dasar untuk mengukur kemiripan.
 
@@ -612,10 +612,10 @@ Fungsi `book_recommendations` menerima judul buku (`title`), *dataframe* kemirip
 Untuk buku "Harry Potter and the Prisoner of Azkaban (Book 3)", sistem merekomendasikan 5 buku teratas berdasarkan kemiripan penulis dan penerbit:
 
 ```
-                                                title         author              publisher
+                                                title         author                 publisher
 0  Harry Potter and the Chamber of Secrets (Harry...       J. K. Rowling       Arthur A. Levine Books
-1    Harry Potter and the Philosopher's Stone (Cove...     J.K. Rowling         BBC Consumer Publishing
-2  Exploring Space: From Ancient Legends to the T...      Scholastic Books       Scholastic
+1    Harry Potter and the Philosopher's Stone (Cove...     J.K. Rowling        BBC Consumer Publishing
+2  Exploring Space: From Ancient Legends to the T...      Scholastic Books           Scholastic
 3                   Harry Potter und der Stein der Weisen Joanne K. Rowling      Carlsen Verlag GmbH
 4  Harry Potter und der Gefangene von Askaban. So...      Joanne K. Rowling       Dhv der HÃ¶rverlag
 ```
@@ -632,7 +632,7 @@ Untuk buku "Harry Potter and the Prisoner of Azkaban (Book 3)", sistem merekomen
 * **Over-Specialization:** Cenderung merekomendasikan item yang sangat mirip dengan preferensi masa lalu pengguna, sehingga kurang dalam penemuan (*discovery*) item baru yang mungkin menarik.
 * **Tidak Mempertimbangkan Preferensi Pengguna Lain:** Tidak memanfaatkan informasi dari pengguna lain yang memiliki selera serupa.
 
-### 2. *Collaborative Filtering*
+### Collaborative Filtering
 
 Pendekatan *Collaborative Filtering* merekomendasikan buku kepada pengguna berdasarkan pola interaksi (rating) pengguna lain yang memiliki preferensi serupa. Dalam implementasi ini, digunakan model *neural network* dengan arsitektur `RecommenderNet`.
 
@@ -754,7 +754,7 @@ Dalam implementasi ini, kedua pendekatan memberikan jenis rekomendasi yang berbe
 
 Bagian ini akan membahas metrik evaluasi yang digunakan untuk mengukur kinerja kedua pendekatan sistem rekomendasi, *Content-Based Filtering* (CBF) dan *Collaborative Filtering* (CF), serta menganalisis hasil proyek berdasarkan metrik tersebut.
 
-### 1. Evaluasi *Content-Based Filtering*
+### Evaluasi Content-Based Filtering
 
 Untuk mengevaluasi kinerja sistem rekomendasi berbasis konten, digunakan metrik **Precision**, **Recall**, dan **F1-Score**. Metrik ini umum digunakan dalam tugas klasifikasi dan relevan untuk mengevaluasi apakah buku-buku yang direkomendasikan memang mirip dengan buku yang menjadi dasar rekomendasi.
 
@@ -786,7 +786,7 @@ F1-score:  1.0000
 
 Hasil evaluasi menunjukkan bahwa dengan *threshold* 0.6, model *Content-Based Filtering* mencapai skor Precision, Recall, dan F1-Score sempurna (1.0). Ini mengindikasikan bahwa semua buku yang dianggap mirip oleh model (di atas *threshold*) memang dianggap relevan berdasarkan *ground truth* yang dibuat, dan model berhasil mengidentifikasi semua pasangan buku yang relevan dalam sampel yang diuji. Namun, perlu diingat bahwa evaluasi ini dilakukan pada sampel data dan sangat bergantung pada *threshold* yang dipilih. Skor sempurna ini mungkin tidak berlaku untuk seluruh dataset atau dengan *threshold* yang berbeda.
 
-### 2. Evaluasi *Collaborative Filtering*
+### Evaluasi Collaborative Filtering
 
 Untuk mengevaluasi kinerja model *Collaborative Filtering*, digunakan metrik **Root Mean Squared Error (RMSE)**. RMSE adalah metrik umum untuk mengevaluasi model regresi, dan dalam konteks sistem rekomendasi, RMSE mengukur perbedaan antara rating yang diprediksi oleh model dan rating sebenarnya yang diberikan oleh pengguna. Semakin kecil nilai RMSE, semakin akurat prediksi rating model.
 
