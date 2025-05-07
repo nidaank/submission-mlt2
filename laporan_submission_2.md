@@ -271,6 +271,58 @@ Boxplot ini menyajikan distribusi usia pengguna. Terlihat bahwa sebagian besar d
 
 Pada tahap ini, dilakukan berbagai langkah pembersihan dan transformasi data untuk memastikan data yang digunakan bersih, relevan, dan siap untuk proses analisis lebih lanjut maupun pembangunan model sistem rekomendasi. Tahapan yang dilakukan adalah sebagai berikut:
 
+#### Melihat Ukuran Awal Dataset Buku
+```
+print('Banyak buku: ', len(books['ISBN'].unique()))
+```
+Kode `print('Banyak buku: ', len(books['ISBN'].unique()))` digunakan untuk menampilkan jumlah total buku unik yang terdapat dalam dataset `books` berdasarkan kolom 'ISBN'. Informasi ini memberikan gambaran mengenai skala dataset buku secara keseluruhan.
+
+### Reduksi Ukuran Dataset
+```
+# Mengambil 15.000 baris data secara acak dari DataFrame books dengan random_state=5
+reduced_books = books.sample(n=15000, random_state=5)
+reduced_books
+
+reduced_ratings = ratings[ratings['ISBN'].isin(unique_isbn_list)]
+reduced_ratings
+```
+Untuk mempermudah dan mempercepat proses analisis serta pembangunan model rekomendasi, dilakukan reduksi ukuran dataset `books` dan `ratings`. Untuk mengurangi ukuran dataset `books`, diambil sampel sebanyak 15.000 baris data secara acak menggunakan fungsi `books.sample(n=15000, random_state=5)`. Parameter `random_state=5` digunakan untuk memastikan hasil pengambilan sampel dapat direproduksi.
+
+#### Pengambilan Sampel Data Buku
+```
+unique_isbn_list = reduced_books['ISBN'].unique().tolist()
+len(unique_isbn_list)
+```
+*Dataframe* hasil pengambilan sampel ini disimpan dalam variabel `reduced_books`. Jumlah ISBN unik dalam sampel ini kemudian diperiksa menggunakan kode `unique_isbn_list = reduced_books['ISBN'].unique().tolist()` dan `len(unique_isbn_list)`.
+
+#### Pemfilteran Data Rating
+```
+reduced_ratings = ratings[ratings['ISBN'].isin(unique_isbn_list)]
+reduced_ratings
+```
+*Dataframe* `ratings` difilter untuk hanya menyertakan rating buku-buku yang ISBN-nya terdapat dalam daftar ISBN unik dari `reduced_books`. Hal ini dilakukan menggunakan kode `reduced_ratings = ratings[ratings['ISBN'].isin(unique_isbn_list)]`. Dengan demikian, *dataframe* `reduced_ratings` hanya berisi rating untuk buku-buku yang juga terdapat dalam sampel `reduced_books`.
+
+#### Penghapusan Kolom URL Gambar
+```
+reduced_books = reduced_books.drop(columns=['Image-URL-S', 'Image-URL-M', 'Image-URL-L'])
+```
+Tiga kolom yang berisi informasi URL gambar buku, yaitu 'Image-URL-S', 'Image-URL-M', dan 'Image-URL-L', dihapus dari *dataframe* `reduced_books` menggunakan kode `reduced_books = reduced_books.drop(columns=['Image-URL-S', 'Image-URL-M', 'Image-URL-L'])`. Kolom-kolom ini dianggap tidak relevan untuk analisis rekomendasi berbasis teks atau rating.
+
+#### Penggabungan Data Rating dan Buku
+```
+# Menggabungkan dataframe rating dengan book berdasarkan nilai ISBN
+booksrate = pd.merge(reduced_ratings, reduced_books, on='ISBN', how='left')
+booksrate
+```
+*Dataframe* `reduced_ratings` dan `reduced_books` digabungkan berdasarkan kolom 'ISBN' menggunakan fungsi `pd.merge(reduced_ratings, reduced_books, on='ISBN', how='left')`. Penggunaan `how='left'` memastikan bahwa semua rating dari `reduced_ratings` tetap ada, dan informasi buku yang sesuai dari `reduced_books` ditambahkan. Hasil penggabungan disimpan dalam *dataframe* `booksrate`.
+
+#### Penghitungan Jumlah Rating per Buku
+```
+# Menghitung jumlah rating kemudian menggabungkannya berdasarkan ISBN
+booksrate.groupby('ISBN').sum()
+```
+Kode `booksrate.groupby('ISBN').sum()` digunakan untuk menghitung jumlah total rating untuk setiap ISBN dalam *dataframe* `booksrate`. Meskipun menggunakan fungsi `sum()`, yang relevan di sini sebenarnya adalah ukuran dari setiap grup ISBN, yang mengindikasikan berapa kali setiap buku dinilai. Hasil ini memberikan informasi mengenai popularitas atau frekuensi rating setiap buku dalam subset data.
+
 ### Penghapusan Missing Value
 
 Setelah dilakukan proses EDA, ditemukan bahwa masih terdapat beberapa nilai kosong (*missing values*) dalam gabungan dataset `booksrate`. Berikut ini adalah jumlah missing value dari masing-masing kolom:
@@ -400,29 +452,6 @@ Teknik *Term Frequency-Inverse Document Frequency* (TF-IDF) digunakan untuk meng
   ```
   Sebuah *dataframe* dibuat dari matriks padat TF-IDF. Kolom-kolom *dataframe* ini diberi nama sesuai dengan fitur-fitur yang diekstrak (kata-kata dari 'author' dan 'publisher'), dan indeksnya adalah judul buku dari kolom 'title' (kemungkinan kolom 'book_title' telah diubah namanya menjadi 'title' pada tahap sebelumnya). Metode `.sample()` digunakan untuk menampilkan sebagian kecil dari *dataframe* ini, memudahkan visualisasi bobot TF-IDF untuk beberapa buku dan fitur secara acak.
 
-4. **Perhitungan *Cosine Similarity***
-
-* **Menghitung *Cosine Similarity***
-  ```
-  # Menghitung cosine similarity pada matrix tf-idf
-  cosine_sim = cosine_similarity(tfidf_matrix)
-  cosine_sim
-  ```
-  Fungsi `cosine_similarity()` dari *library* `sklearn.metrics.pairwise` digunakan untuk menghitung kemiripan *cosine* antara semua pasangan vektor TF-IDF dalam `tfidf_matrix`. *Cosine similarity* adalah ukuran kemiripan antara dua vektor dalam ruang multidimensi dan sering digunakan untuk mengukur kemiripan dokumen teks. Nilainya berkisar antara -1 (tidak mirip) hingga 1 (sangat mirip).
-* **Membuat *Dataframe* *Cosine Similarity***
-  ```
-  # Membuat dataframe dari variabel cosine_sim dengan baris dan kolom berupa nama buku
-  cosine_sim_df = pd.DataFrame(cosine_sim, index=data['title'], columns=data['title'])
-  print('Shape:', cosine_sim_df.shape)
-  ```
-  Hasil dari `cosine_similarity()` adalah matriks *numpy* yang kemudian diubah menjadi *dataframe* `cosine_sim_df`. Indeks dan kolom dari *dataframe* ini diatur menjadi judul buku, sehingga setiap sel *(i, j)* dalam *dataframe* berisi nilai *cosine similarity* antara buku *i* dan buku *j*.
-* **Melihat Ukuran dan Contoh Matriks *Cosine Similarity***
-  ```
-  # Melihat similarity matrix pada setiap buku
-  cosine_sim_df.sample(5, axis=1).sample(10, axis=0)
-  ```
-  `cosine_sim_df.shape` menunjukkan dimensi dari matriks *cosine similarity*, yang akan berbentuk persegi dengan ukuran jumlah buku dikali jumlah buku. Metode `.sample()` kembali digunakan untuk menampilkan sebagian kecil dari matriks *cosine similarity*, yang menunjukkan tingkat kemiripan antara beberapa pasangan buku secara acak.
-
 **Tujuan Keseluruhan**
 
 Tujuan dari tahapan persiapan data ini adalah untuk mengubah representasi tekstual dari penulis dan penerbit buku menjadi representasi numerik (vektor TF-IDF) dan kemudian mengukur kemiripan antar buku berdasarkan representasi numerik ini menggunakan *cosine similarity*. Matriks *cosine similarity* yang dihasilkan (`cosine_sim_df`) akan menjadi dasar untuk sistem rekomendasi *content-based*, di mana buku-buku dengan nilai kemiripan *cosine* yang tinggi dianggap memiliki konten yang serupa dan dapat direkomendasikan satu sama lain.
@@ -551,28 +580,29 @@ Pendekatan *Content-Based Filtering* merekomendasikan buku kepada pengguna berda
 **Cara Kerja:**
 
 1.  **Representasi Fitur:** Fitur teks dari kolom 'combined' (gabungan 'author' dan 'publisher') diubah menjadi vektor numerik menggunakan algoritma *Term Frequency-Inverse Document Frequency* (TF-IDF). TF-IDF memberikan bobot pada setiap kata berdasarkan frekuensinya dalam satu buku dan invers frekuensi dokumennya di seluruh koleksi buku.
-2.  **Perhitungan Kemiripan:** Kemiripan antar vektor TF-IDF dari setiap buku dihitung menggunakan *cosine similarity*. Nilai *cosine similarity* mengukur sudut antara dua vektor, dengan nilai yang lebih tinggi menunjukkan kemiripan yang lebih besar. Matriks *cosine similarity* (`cosine_sim_df`) menyimpan skor kemiripan antara setiap pasangan buku.
-3.  **Penyusunan Rekomendasi:** Untuk memberikan rekomendasi untuk sebuah buku yang dipilih, sistem mencari buku-buku lain dengan skor *cosine similarity* tertinggi terhadap buku tersebut. Buku dengan kemiripan tertinggi dianggap paling relevan.
+2.  **Perhitungan Kemiripan:** Kemiripan antar vektor TF-IDF dari setiap buku dihitung menggunakan fungsi `cosine_similarity()` dari *library* `sklearn.metrics.pairwise`. *Cosine similarity* adalah ukuran kemiripan antara dua vektor dalam ruang multidimensi, dengan nilai yang berkisar antara -1 (tidak mirip) hingga 1 (sangat mirip). Hasil perhitungan ini disimpan dalam matriks *numpy* (`cosine_sim`).
+3.  **Membuat Matriks Kemiripan (*Cosine Similarity*) dalam Bentuk *Dataframe*:** Matriks *numpy* `cosine_sim` kemudian diubah menjadi *dataframe* `cosine_sim_df`. Judul buku dari kolom 'title' digunakan sebagai indeks dan nama kolom pada *dataframe* ini. Setiap sel *(i, j)* dalam `cosine_sim_df` menunjukkan nilai *cosine similarity* antara buku *i* dan buku *j*. Ukuran dari *dataframe* ini adalah persegi dengan dimensi jumlah buku dikali jumlah buku.
+4.  **Penyusunan Rekomendasi:** Untuk memberikan rekomendasi untuk sebuah buku yang dipilih, sistem mencari buku-buku lain dengan skor *cosine similarity* tertinggi terhadap buku tersebut dalam `cosine_sim_df`. Buku dengan kemiripan tertinggi dianggap paling relevan.
 
 **Implementasi Fungsi `book_recommendations`:**
-```
+```python
 def book_recommendations(title, similarity_data=cosine_sim_df, items=data[['title', 'author', 'publisher']], k=5):
-  index = similarity_data.loc[:,title].to_numpy().argpartition(
-        range(-1, -k, -1))
+  index = similarity_data.loc[:,title].to_numpy().argpartition(
+        range(-1, -k, -1))
 
-  # Mengambil data dengan similarity terbesar dari index yang ada
-  closest = similarity_data.columns[index[-1:-(k+2):-1]]
+  # Mengambil data dengan similarity terbesar dari index yang ada
+  closest = similarity_data.columns[index[-1:-(k+2):-1]]
 
-  # Drop title agar nama buku yang dicari tidak muncul dalam daftar rekomendasi
-  closest = closest.drop(title, errors='ignore')
+  # Drop title agar nama buku yang dicari tidak muncul dalam daftar rekomendasi
+  closest = closest.drop(title, errors='ignore')
 
-  return pd.DataFrame(closest).merge(items).head(k)
+  return pd.DataFrame(closest).merge(items).head(k)
 ```
-Fungsi `book_recommendations` menerima judul buku (`title`), matriks kemiripan (`similarity_data`), *dataframe* informasi buku (`items`), dan jumlah rekomendasi yang diinginkan (`k`) sebagai input. Fungsi ini bekerja dengan:
+Fungsi `book_recommendations` menerima judul buku (`title`), *dataframe* kemiripan (`similarity_data`), *dataframe* informasi buku (`items`), dan jumlah rekomendasi yang diinginkan (`k`) sebagai input. Fungsi ini bekerja dengan:
 
-1.  Mencari indeks buku yang sesuai dengan judul yang diberikan dalam matriks kemiripan.
+1.  Mencari indeks buku yang sesuai dengan judul yang diberikan dalam *dataframe* kemiripan.
 2.  Menggunakan `argpartition` untuk mendapatkan indeks dari *k* buku yang paling mirip (berdasarkan skor *cosine similarity* tertinggi).
-3.  Mengambil nama-nama buku yang paling mirip dari kolom matriks kemiripan berdasarkan indeks yang ditemukan.
+3.  Mengambil nama-nama buku yang paling mirip dari kolom *dataframe* kemiripan berdasarkan indeks yang ditemukan.
 4.  Menghapus judul buku yang menjadi input dari daftar rekomendasi agar tidak muncul sebagai rekomendasi.
 5.  Menggabungkan daftar judul buku rekomendasi dengan *dataframe* informasi buku untuk menampilkan detail penulis dan penerbit.
 6.  Mengembalikan *dataframe* berisi *k* buku rekomendasi teratas.
@@ -717,12 +747,6 @@ Dalam implementasi ini, kedua pendekatan memberikan jenis rekomendasi yang berbe
 | Cold-start problem   | Tidak untuk pengguna, ya untuk item | Ya, jika tidak ada data pengguna |
 | Eksplorasi item baru | Terbatas (mirip saja)               | Bisa beragam                     |
 | Data yang dibutuhkan | Metadata buku                       | Riwayat interaksi pengguna       |
-
-Tahapan ini membahas mengenai model sisten rekomendasi yang Anda buat untuk menyelesaikan permasalahan. Sajikan top-N recommendation sebagai output.
-
-**Rubrik/Kriteria Tambahan (Opsional)**: 
-- Menyajikan dua solusi rekomendasi dengan algoritma yang berbeda.
-- Menjelaskan kelebihan dan kekurangan dari solusi/pendekatan yang dipilih.
 
 ## Evaluation
 
