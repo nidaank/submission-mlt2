@@ -750,8 +750,6 @@ Dalam implementasi ini, kedua pendekatan memberikan jenis rekomendasi yang berbe
 
 ## Evaluation
 
-## Evaluasi Sistem Rekomendasi
-
 Bagian ini akan membahas metrik evaluasi yang digunakan untuk mengukur kinerja kedua pendekatan sistem rekomendasi, *Content-Based Filtering* (CBF) dan *Collaborative Filtering* (CF), serta menganalisis hasil proyek berdasarkan metrik tersebut.
 
 ### Evaluasi Content-Based Filtering
